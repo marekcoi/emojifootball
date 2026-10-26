@@ -135,6 +135,7 @@ const TEAMS=[
 const ROLES=['BR','OB','PO','PO','NA'];
 // simple passing: one target, always shown
 const CLASH={'fcb-liv':1,'liv-fcb':1,'fcb-mci':1,'mci-fcb':1};
+const GAME_SPEED=.68;
 const L=40,WD=24,GW=5.6,PR=.75,BR=.24,BOX_D=7,BOX_W=13;
 const FORM=[[1.0,.5],[.2,.5],[.4,.24],[.4,.76],[.56,.5]];
 const rnd=Math.random,TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),hyp=Math.hypot;
@@ -347,8 +348,8 @@ function keyJoy(){const x=(KEYS.ArrowRight||KEYS.KeyD?1:0)-(KEYS.ArrowLeft||KEYS
 function switchPlayer(){const c=S.home.players.filter(p=>p.i>0&&p!==S.ctrl).sort((a,b)=>dist(a,B)-dist(b,B));if(c[0]){S.ctrl=c[0];S.switchCD=1.2}}
 function tackle(){const p=S.ctrl;if(!p||p.stun>0)return;const c=B.owner;
   const tx=(c||B).x-p.x,ty=(c||B).y-p.y,d=hyp(tx,ty)||1;p.vx=tx/d*10;p.vy=ty/d*10;p.lunge=.22;
-  if(c&&c.team!==p.team&&d<2.1&&B.protect<=0){if(rnd()<.66){take(p);c.stealCD=.8;c.stun=.35;sfxKick(.2)}else p.stun=.5}
-  else if(!c&&d<1.6){take(p)}else p.stun=.35}
+  if(c&&c.team!==p.team&&d<2.5&&B.protect<=0){if(rnd()<.82){take(p);c.stealCD=.8;c.stun=.35;sfxKick(.2)}else p.stun=.35}
+  else if(!c&&d<2){take(p)}else p.stun=.25}
 
 // ================= AI =================
 function steer(p,tx,ty,s,dt){const dx=tx-p.x,dy=ty-p.y,d=hyp(dx,dy);let vx=0,vy=0;if(d>.05){const k=Math.min(1,d/1.2)*s;vx=dx/d*k;vy=dy/d*k}
@@ -380,7 +381,7 @@ function aiCarrier(p,dt){
     if(rnd()<.06){pass(p,null);return}}
   let tx=gx-t.dir*1.5,ty=WD/2+(p.y-WD/2)*.4;
   if(n.q&&n.d<3.5&&(n.q.x-p.x)*t.dir>-.5){ty=p.y+(n.q.y>p.y?-3.5:3.5);tx=p.x+t.dir*3}
-  steer(p,clamp(tx,.5,L-.5),clamp(ty,1,WD-1),spd(p)*.9,dt);
+  steer(p,clamp(tx,.5,L-.5),clamp(ty,1,WD-1),spd(p)*.8,dt);
 }
 function aiField(p,dt){
   const t=p.team,own=B.owner;
@@ -428,7 +429,7 @@ function updateBall(dt){
   B.protect=Math.max(0,B.protect-dt);
   if(B.owner){const p=B.owner;B.x=p.x+p.fx*(PR+.25);B.y=p.y+p.fy*(PR+.25);B.vx=p.vx;B.vy=p.vy;B.spin+=hyp(p.vx,p.vy)*dt*2;
     if(B.protect<=0&&S.phase==='play'){const c=p;for(const q of other(c.team).players){if(q===S.ctrl||q.stealCD>0||q.stun>0)continue;const d=dist(q,c);
-      if(d<1.65){const rate=q.i===0?2.5:c.team.human?.8:.9;if(rnd()<rate*dt){take(q);c.stealCD=.8;c.stun=.3;B.protect=.4;sfxKick(.15);break}}}}
+      if(d<1.65){const rate=q.i===0?2.5:c.team.human?.65:.9;if(rnd()<rate*dt){take(q);c.stealCD=.8;c.stun=.3;B.protect=.4;sfxKick(.15);break}}}}
     return}
   const sp=hyp(B.vx,B.vy);
   B.x+=B.vx*dt;B.y+=B.vy*dt;B.spin+=sp*dt*2;
@@ -465,7 +466,7 @@ function update(dt){
   else if(S.phase==='half'){S.timer-=dt;if(S.timer<=0){S.half=2;S.clock=0;S.home.dir*=-1;S.away.dir*=-1;kickoff(other(S.firstKick))}}
   if(S.phase==='play'||S.phase==='restart'){S.clock+=dt;
     if(S.clock>=HALF&&S.phase==='play'){if(S.half===1){S.phase='half';S.timer=3;sfxWhistle(2,true);S.msg={big:'PRZERWA',sub:`${S.home.def.short} ${S.home.score}:${S.away.score} ${S.away.def.short} · zmiana stron`,t:0,dur:2.8};crowdLevel(.08,1)}else{endMatch();return}}}
-  updateCtrl(dt);movePlayers(dt);updateBall(dt);
+  const sdt=dt*GAME_SPEED;updateCtrl(sdt);movePlayers(sdt);updateBall(sdt);
   // crowd ambience follows danger
   if(S.phase==='play'&&AU.ctx){S.clapT-=dt;if(S.clapT<=0){S.clapT=14+rnd()*12;sfxClaps()}
     const nearGoal=Math.min(B.x,L-B.x)<10;const target=nearGoal?.17:.1;if(S.lastCrowd!==target){S.lastCrowd=target;crowdLevel(target,1.2)}}
